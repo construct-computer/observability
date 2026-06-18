@@ -1,0 +1,27 @@
+{
+  "name": "@construct/observability",
+  "version": "0.1.0",
+  "description": "Shared wide-event logging for Construct platform workers",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "hono": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "hono": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "hono": "^4.7.0",
+    "typescript": "^6.0.2"
+  }
+}
