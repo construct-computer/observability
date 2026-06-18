@@ -1,7 +1,9 @@
 import type { Context, Next } from 'hono';
+import { extractErrorFields } from './errors';
 import { createServiceLogger } from './log';
+import type { DeploymentOptions } from './deployment';
 import { normalizeRoute } from './route-normalize';
-import type { DeploymentOptions, ObservabilityEnv } from './types';
+import type { ObservabilityEnv } from './types';
 
 export interface RequestContextIds {
   requestId: string;
@@ -109,7 +111,7 @@ export function wideEventMiddleware<E extends ObservabilityEnv>(
       });
 
       const level = status >= 500 || caughtError ? 'error' : status >= 400 ? 'warn' : 'info';
-import { extractErrorFields } from './errors';
+      const errorFields = caughtError ? extractErrorFields(caughtError) : {};
 
       log[level === 'warn' ? 'warn' : level === 'error' ? 'error' : 'info']('http_request', {
         method: c.req.method,
