@@ -154,12 +154,10 @@ export function withRequestContext<E extends ObservabilityEnv>(
     const route = normalizeRoute(path);
 
     let response: Response;
-    let caughtError: unknown;
 
     try {
       response = await handler(request, env);
     } catch (err) {
-      caughtError = err;
       const fields = extractErrorFields(err);
       const log = createServiceLogger(env, options, 'http', {
         requestId,
