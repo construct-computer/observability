@@ -1,4 +1,6 @@
 import type { DeploymentContext, WideEvent, WideEventPartial } from './types';
+import { forwardWideEvent } from './logs-queue-forward';
+import { validateEventName } from './event-name';
 
 /** Snake_case aliases for common camelCase context keys. */
 function flattenContext(ctx: Record<string, unknown>): Record<string, unknown> {
@@ -46,10 +48,14 @@ export function formatWideEvent(
 }
 
 export function emitWideEvent(event: WideEvent): void {
+  validateEventName(event.event, event.environment === 'local' || event.environment === 'staging');
+
   const payload = JSON.stringify(event);
   if (event.level === 'error') {
     console.error(payload);
   } else {
     console.log(payload);
   }
+
+  forwardWideEvent(event);
 }

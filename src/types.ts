@@ -1,6 +1,10 @@
 export type WideEventLevel = 'info' | 'error';
 
+export type WideEventSeverity = 'debug' | 'info' | 'warn' | 'error';
+
 export type WideEventOutcome = 'success' | 'error' | 'partial' | 'timeout';
+
+export type TriggerClass = 'user' | 'user_async' | 'system' | 'system_background';
 
 export interface DeploymentContext {
   service_name: string;
@@ -14,6 +18,8 @@ export interface WideEventPartial {
   event: string;
   source: string;
   outcome: WideEventOutcome;
+  severity?: WideEventSeverity;
+  trigger_class?: TriggerClass;
 
   request_id?: string;
   trace_id?: string;
@@ -36,6 +42,12 @@ export interface WideEventPartial {
   functionality?: string;
   plan?: string;
 
+  tool_calls?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  model?: string;
+  cost_usd?: number;
+
   error_message?: string;
   error_type?: string;
   error_source?: string;
@@ -57,6 +69,7 @@ export interface WideEvent extends WideEventPartial {
 export interface ObservabilityEnv {
   ENVIRONMENT?: string;
   APP_VERSION?: string;
+  LOGS_QUEUE?: { send: (body: WideEvent, options?: any) => Promise<any> };
 }
 
 export interface LogContext {
@@ -78,13 +91,18 @@ export interface LogContext {
   cfColo?: string;
   cf_colo?: string;
   outcome?: WideEventOutcome;
+  trigger_class?: TriggerClass;
   [key: string]: unknown;
 }
 
 export interface Logger {
   info: (event: string, extra?: Record<string, unknown>) => void;
   error: (event: string, extra?: Record<string, unknown>) => void;
-  /** Maps to info level with outcome in payload (CF uses info + error for two-level policy). */
   warn: (event: string, extra?: Record<string, unknown>) => void;
   debug: (event: string, extra?: Record<string, unknown>) => void;
+}
+
+export interface LoggerForwardOptions {
+  queue?: ObservabilityEnv['LOGS_QUEUE'];
+  waitUntil?: (promise: Promise<unknown>) => void;
 }

@@ -1,4 +1,4 @@
-import type { Logger, WideEventOutcome } from './types';
+import type { Logger, WideEventOutcome, TriggerClass } from './types';
 
 export interface AgentTurnStats {
   model?: string;
@@ -56,14 +56,32 @@ export class AgentTurnRecorder {
 
   finish(extra?: Record<string, unknown>): void {
     const duration_ms = Date.now() - this.startedAt;
-    this.logger.info('agent_turn', {
+    const trigger_class: TriggerClass = this.stats.scheduled_run ? 'user_async' : 'user';
+    const overflow: Record<string, unknown> = {};
+    const topLevel: Record<string, unknown> = {
       ...this.base,
       outcome: this.outcome,
       duration_ms,
-      extra: {
-        ...this.stats,
-        ...extra,
-      },
+      trigger_class,
+      model: this.stats.model,
+      tool_calls: this.stats.tool_calls,
+      input_tokens: this.stats.input_tokens,
+      output_tokens: this.stats.output_tokens,
+      cost_usd: this.stats.cost_usd,
+      platform: this.stats.platform,
+    };
+
+    for (const [key, value] of Object.entries(this.stats)) {
+      if (value === undefined) continue;
+      if (key in topLevel) continue;
+      overflow[key] = value;
+    }
+
+    this.logger.info('agent_turn', {
+      ...topLevel,
+      ...(Object.keys(overflow).length > 0 || extra ? {
+        extra: { ...overflow, ...extra },
+      } : {}),
     });
   }
 }

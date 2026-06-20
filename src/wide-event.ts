@@ -1,7 +1,7 @@
 import type { Context, Next } from 'hono';
 import { extractErrorFields } from './errors';
 import { createServiceLogger } from './log';
-import type { DeploymentOptions } from './deployment';
+import type { DeploymentOptions } from './deployment-context';
 import { normalizeRoute } from './route-normalize';
 import type { ObservabilityEnv } from './types';
 
@@ -108,12 +108,17 @@ export function wideEventMiddleware<E extends ObservabilityEnv>(
         correlationId: ctx.correlationId,
         cfRay: ctx.cfRay,
         userId,
+        trigger_class: 'user',
+      }, {
+        queue: c.env.LOGS_QUEUE,
+        waitUntil: c.executionCtx?.waitUntil.bind(c.executionCtx),
       });
 
       const level = status >= 500 || caughtError ? 'error' : status >= 400 ? 'warn' : 'info';
       const errorFields = caughtError ? extractErrorFields(caughtError) : {};
 
       log[level === 'warn' ? 'warn' : level === 'error' ? 'error' : 'info']('http_request', {
+        trigger_class: 'user',
         method: c.req.method,
         path: c.req.path,
         route,
@@ -125,8 +130,8 @@ export function wideEventMiddleware<E extends ObservabilityEnv>(
         user_agent: c.req.header('user-agent'),
         origin: c.req.header('origin'),
         referer: c.req.header('referer'),
-        cf_country: c.req.raw.cf?.country as string | undefined,
-        cf_colo: c.req.raw.cf?.colo as string | undefined,
+        cf_country: (c.req.raw as Request & { cf?: { country?: string } }).cf?.country,
+        cf_colo: (c.req.raw as Request & { cf?: { colo?: string } }).cf?.colo,
         ...errorFields,
       });
     }
@@ -138,7 +143,7 @@ export function withRequestContext<E extends ObservabilityEnv>(
   options: WideEventMiddlewareOptions,
   handler: (request: Request, env: E) => Promise<Response>,
 ) {
-  return async (request: Request, env: E, executionCtx?: ExecutionContext): Promise<Response> => {
+  return async (request: Request, env: E, _executionCtx?: { waitUntil: (p: Promise<unknown>) => void }): Promise<Response> => {
     const requestId = request.headers.get('x-request-id')
       || request.headers.get('cf-ray')
       || crypto.randomUUID();
@@ -200,7 +205,7 @@ export function withRequestContext<E extends ObservabilityEnv>(
     response.headers.set('x-request-id', requestId);
     response.headers.set('x-trace-id', traceId);
 
-    void executionCtx;
+    void _executionCtx;
 
     return response;
   };
