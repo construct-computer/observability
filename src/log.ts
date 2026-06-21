@@ -1,5 +1,8 @@
 import { deploymentContext, type DeploymentOptions } from './deployment-context';
 import { configureLogsForward } from './logs-queue-forward';
+import { EVENT_ALIASES } from './event-catalog';
+import { isValidEventName } from './event-name';
+import { normalizeEventKey } from './event-text';
 import { emitWideEvent, formatWideEvent } from './format-wide-event';
 import type {
   LogContext,
@@ -28,6 +31,14 @@ function mapSeverity(level: WideEventLevel | 'warn' | 'debug'): WideEventSeverit
   if (level === 'warn') return 'warn';
   if (level === 'debug') return 'debug';
   return 'info';
+}
+
+/** Legacy human-readable names are normalized to snake_case at emit time. */
+export function resolveEventName(event: string): string {
+  if (EVENT_ALIASES.has(event) || isValidEventName(event)) return event;
+  const normalized = normalizeEventKey(event);
+  if (normalized && isValidEventName(normalized)) return normalized;
+  return event;
 }
 
 export function createLogger(
@@ -59,12 +70,13 @@ export function createLogger(
     const outcome = (extra?.outcome ?? ctx.outcome ?? (mapped === 'error' ? 'error' : 'success')) as WideEventOutcome;
     const triggerClass = (extra?.trigger_class ?? ctx.trigger_class ?? options?.defaultTriggerClass ?? 'user') as TriggerClass;
 
+    const eventName = resolveEventName(event);
     const wide = formatWideEvent(
       deployment,
       {
         level: mapped,
         severity: mapSeverity(level),
-        event,
+        event: eventName,
         source,
         outcome,
         trigger_class: triggerClass,
