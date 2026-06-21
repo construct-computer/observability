@@ -1,5 +1,6 @@
 export * from './types';
 export * from './deployment-context';
+export * from './deployment-store';
 export * from './deployment';
 export * from './format-wide-event';
 export * from './log';

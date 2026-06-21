@@ -70,6 +70,8 @@ export interface ObservabilityEnv {
   ENVIRONMENT?: string;
   APP_VERSION?: string;
   LOGS_QUEUE?: { send: (body: WideEvent, options?: any) => Promise<any> };
+  /** 0–1 fraction of debug events forwarded to LOGS_QUEUE in production. */
+  LOG_DEBUG_SAMPLE_RATE?: string | number;
 }
 
 export interface LogContext {

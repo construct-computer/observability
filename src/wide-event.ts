@@ -1,7 +1,8 @@
 import type { Context, Next } from 'hono';
+import { deploymentContext, type DeploymentOptions } from './deployment-context';
+import { runWithDeployment } from './deployment-store';
 import { extractErrorFields } from './errors';
 import { createServiceLogger } from './log';
-import type { DeploymentOptions } from './deployment-context';
 import { normalizeRoute } from './route-normalize';
 import type { ObservabilityEnv } from './types';
 
@@ -87,11 +88,12 @@ export function wideEventMiddleware<E extends ObservabilityEnv>(
     c.header('x-request-id', ctx.requestId);
     c.header('x-trace-id', ctx.traceId);
 
+    const deployment = deploymentContext(c.env, options);
     const start = Date.now();
     let caughtError: unknown;
 
     try {
-      await next();
+      await runWithDeployment(deployment, () => next());
     } catch (err) {
       caughtError = err;
       throw err;

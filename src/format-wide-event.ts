@@ -13,6 +13,8 @@ function flattenContext(ctx: Record<string, unknown>): Record<string, unknown> {
     correlationId: 'correlation_id',
     cfRay: 'cf_ray',
     cfColo: 'cf_colo',
+    durationMs: 'duration_ms',
+    toolName: 'tool_name',
   };
   for (const [key, value] of Object.entries(ctx)) {
     if (value === undefined) continue;
@@ -41,7 +43,7 @@ export function formatWideEvent(
   };
 
   if (extra && Object.keys(extra).length > 0) {
-    event.extra = extra;
+    event.extra = flattenContext(extra as Record<string, unknown>);
   }
 
   return event;

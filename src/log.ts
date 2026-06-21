@@ -1,10 +1,8 @@
 import { deploymentContext, type DeploymentOptions } from './deployment-context';
-import { configureLogsForward } from './logs-queue-forward';
-import { EVENT_ALIASES } from './event-catalog';
-import { isValidEventName } from './event-name';
-import { normalizeEventKey } from './event-text';
-import { emitWideEvent, formatWideEvent } from './format-wide-event';
+import { getDeployment } from './deployment-store';
+import { configureLogsForward, forwardWideEvent } from './logs-queue-forward';
 import type {
+  DeploymentContext,
   LogContext,
   Logger,
   LoggerForwardOptions,
@@ -14,6 +12,10 @@ import type {
   WideEventOutcome,
   WideEventSeverity,
 } from './types';
+import { EVENT_ALIASES } from './event-catalog';
+import { isValidEventName } from './event-name';
+import { normalizeEventKey } from './event-text';
+import { emitWideEvent, formatWideEvent } from './format-wide-event';
 
 export interface CreateLoggerOptions extends DeploymentOptions {
   env?: ObservabilityEnv;
@@ -41,19 +43,51 @@ export function resolveEventName(event: string): string {
   return event;
 }
 
+function resolveDeployment(options?: CreateLoggerOptions) {
+  if (options?.env && options?.serviceName) {
+    return deploymentContext(options.env, {
+      serviceName: options.serviceName,
+      workerName: options.workerName,
+    });
+  }
+  const fromStore = getDeployment();
+  if (fromStore) return fromStore;
+  return {
+    service_name: options?.serviceName ?? 'unknown',
+    environment: options?.env?.ENVIRONMENT ?? 'local',
+    version: options?.env?.APP_VERSION ?? 'unknown',
+    worker_name: options?.workerName,
+  };
+}
+
+/** Deterministic sampling so related debug lines for one request stay together. */
+function shouldForwardDebug(
+  deployment: DeploymentContext,
+  options: CreateLoggerOptions | undefined,
+  ctx: LogContext,
+  event: string,
+): boolean {
+  if (deployment.environment !== 'production') return true;
+  const rawRate = options?.env?.LOG_DEBUG_SAMPLE_RATE;
+  const rate = rawRate != null && rawRate !== '' ? Number(rawRate) : 0.02;
+  if (!Number.isFinite(rate) || rate <= 0) return false;
+  if (rate >= 1) return true;
+  const record = ctx as Record<string, unknown>;
+  const requestId = String(record.requestId ?? record.request_id ?? '');
+  let hash = 0;
+  const key = `${requestId}:${event}`;
+  for (let i = 0; i < key.length; i++) {
+    hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % 100) < rate * 100;
+}
+
 export function createLogger(
   source: string,
   ctx: LogContext = {},
   options?: CreateLoggerOptions,
 ): Logger {
-  const deployment = options?.env && options?.serviceName
-    ? deploymentContext(options.env, { serviceName: options.serviceName, workerName: options.workerName })
-    : {
-        service_name: options?.serviceName ?? 'unknown',
-        environment: options?.env?.ENVIRONMENT ?? 'local',
-        version: options?.env?.APP_VERSION ?? 'unknown',
-        worker_name: options?.workerName,
-      };
+  const deployment = resolveDeployment(options);
 
   const queue = options?.forward?.queue ?? options?.env?.LOGS_QUEUE;
   const waitUntil = options?.forward?.waitUntil;
@@ -88,6 +122,9 @@ export function createLogger(
 
     if (level === 'debug') {
       console.debug(JSON.stringify(wide));
+      if (shouldForwardDebug(deployment, options, ctx, eventName)) {
+        forwardWideEvent(wide);
+      }
       return;
     }
 
