@@ -1,7 +1,7 @@
 {
   "name": "@construct/observability",
   "version": "0.2.0",
-  "description": "Archived — see README.md",
+  "description": "Analytics events + essential error logs for Construct platform workers",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -9,9 +9,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }
 }

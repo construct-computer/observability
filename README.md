@@ -1,14 +1,36 @@
-# @construct/observability — archived
+# @construct/observability
 
-This package has been **removed** as part of the observability teardown (June 2026).
+Minimal analytics + essential error logging for Construct platform workers.
 
-The previous wide-event logging pipeline (`createLogger`, `LOGS_QUEUE` → Observer D1) did not deliver actionable user analytics and has been deleted across all platform workers.
+## API
 
-## Replacement
+```ts
+import { track, log } from '@construct/observability';
 
-A new analytics SDK and Observer data model will be built under:
+track(env, {
+  event: 'llm_call',
+  trigger: 'user',
+  userId,
+  model: 'gpt-4o',
+  costUsd: 0.002,
+});
 
-- `@construct/analytics` (TBD) — minimal event emission from construct/memory/app-registry workers
-- [construct-observer](https://github.com/construct-computer/observer) — user-first analytics UI
+log(env, {
+  kind: 'log',
+  level: 'error',
+  source: 'agent.loop',
+  message: 'Turn crashed',
+  error,
+  userId,
+  sessionKey,
+  context: { iteration: 3 },
+});
+```
 
-Do not add new dependencies on this package.
+Both functions are fire-and-forget and never throw. Messages are sent to `ANALYTICS_QUEUE` with envelope `kind: 'analytics' | 'log'`.
+
+## Logging policy
+
+- **log(error|warn)** — actionable failures only (5xx, turn crash, hard tool/LLM failure, billing/webhook errors)
+- **track()** — metrics (llm_call, tool_call, agent_turn, incident, user_activity, system_event)
+- Do not duplicate full stack traces in analytics payloads — use `log()` for stacks
