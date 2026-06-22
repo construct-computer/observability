@@ -1,40 +1,14 @@
-# @construct/observability
+# @construct/observability — archived
 
-Shared wide-event structured logging for Construct platform Cloudflare Workers.
+This package has been **removed** as part of the observability teardown (June 2026).
 
-## Usage
+The previous wide-event logging pipeline (`createLogger`, `LOGS_QUEUE` → Observer D1) did not deliver actionable user analytics and has been deleted across all platform workers.
 
-```typescript
-import {
-  createServiceLogger,
-  wideEventMiddleware,
-  AgentTurnRecorder,
-} from '@construct/observability';
+## Replacement
 
-const log = createServiceLogger(env, {
-  serviceName: 'construct-api',
-  workerName: 'construct-api-staging',
-}, 'my.module', { userId: '...' });
+A new analytics SDK and Observer data model will be built under:
 
-app.use('*', wideEventMiddleware({
-  serviceName: 'construct-api',
-  workerName: 'construct-api-staging',
-  getUserId: (c) => c.get('userId'),
-}));
-```
+- `@construct/analytics` (TBD) — minimal event emission from construct/memory/app-registry workers
+- [construct-observer](https://github.com/construct-computer/observer) — user-first analytics UI
 
-## Submodule
-
-Add to consumer repos:
-
-```bash
-git submodule add git@github.com:construct-computer/observability.git observability
-```
-
-```json
-"@construct/observability": "file:../observability"
-```
-
-## Wrangler
-
-See `wrangler-snippet.toml` for observability blocks.
+Do not add new dependencies on this package.

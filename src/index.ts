@@ -1,14 +1,2 @@
-export * from './types';
-export * from './deployment-context';
-export * from './deployment-store';
-export * from './deployment';
-export * from './format-wide-event';
-export * from './log';
-export * from './errors';
-export * from './route-normalize';
-export * from './agent-turn';
-export * from './wide-event';
-export * from './event-text';
-export * from './event-catalog';
-export * from './event-name';
-export * from './logs-queue-forward';
+/** @deprecated Package archived — see README.md */
+export {};
