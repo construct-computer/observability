@@ -17,7 +17,7 @@ export function track(
       appVersion: env.APP_VERSION,
     });
 
-    enqueueEnvelope(body, ctx);
+    enqueueEnvelope(body, env, ctx);
   } catch {
     // never throw
   }

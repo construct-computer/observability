@@ -15,12 +15,16 @@ function envelopeBytes(body: Record<string, unknown>): number {
   }
 }
 
-export function enqueueEnvelope(body: Record<string, unknown>, ctx?: ExecutionContextLike): void {
+export function enqueueEnvelope(
+  body: Record<string, unknown>,
+  env?: ObservabilityEnv,
+  ctx?: ExecutionContextLike,
+): void {
   pending.push(body as unknown as QueueEnvelope);
   pendingBytes += envelopeBytes(body);
 
   if (pending.length >= MAX_BATCH_MESSAGES || pendingBytes >= MAX_BATCH_BYTES) {
-    void flushQueue(undefined, ctx);
+    void flushQueue(env, ctx);
     return;
   }
 
@@ -28,7 +32,7 @@ export function enqueueEnvelope(body: Record<string, unknown>, ctx?: ExecutionCo
     flushScheduled = true;
     queueMicrotask(() => {
       flushScheduled = false;
-      void flushQueue(undefined, ctx);
+      void flushQueue(env, ctx);
     });
   }
 }

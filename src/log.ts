@@ -16,7 +16,7 @@ export function log(env: ObservabilityEnv, event: LogEvent, ctx?: ExecutionConte
       console.error(JSON.stringify(body));
     }
 
-    enqueueEnvelope(body, ctx);
+    enqueueEnvelope(body, env, ctx);
   } catch {
     // never throw
   }
